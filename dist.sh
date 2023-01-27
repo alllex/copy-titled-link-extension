@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-# Copy all files into dist folder except for the dist folder itself, this script and README
-mkdir -p dist
-rm -rf dist/*
+CHROME_DIST="dist/copy-titled-link-chrome"
 
-cp -r src/ dist/
+mkdir -p "$CHROME_DIST"
+rm -rf "$CHROME_DIST"/*
+cp -r src/ "$CHROME_DIST"/
 
