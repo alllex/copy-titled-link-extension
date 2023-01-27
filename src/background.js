@@ -2,14 +2,51 @@
 const extensionName = "Copy Title";
 
 async function contentScript_copyPageDetailsToClipboard() {
-    const doCopy = async () => {
-        const title = document.title;
-        const url = location.href;
-        const text = `${title}\n${url}`;
-        // console.log(`Page details:\n${text}`);
-        await navigator.clipboard.writeText(text);
-        // console.log(`Page details copied to clipboard`);
+    function getSelectionText() {
+        let text = "";
+        if (window.getSelection) {
+            text = window.getSelection().toString();
+        } else if (document.selection && document.selection.type != "Control") {
+            text = document.selection.createRange().text;
+        }
         return text;
+    }
+
+    function getTitleAndUrl() {
+        const url = location.href;
+        const selectionText = getSelectionText();
+        if (selectionText) {
+            const urlBeforeHash = url.split('#')[0];
+            const encodedSelectionText = encodeURIComponent(selectionText);
+            const highlightUrl = urlBeforeHash + "#:~:text=" + encodedSelectionText;
+            return {
+                title: selectionText,
+                url: highlightUrl,
+            };
+        }
+
+        return {
+            title: document.title,
+            url: url,
+        };
+    }
+
+    const doCopy = async () => {
+        const { title, url } = getTitleAndUrl();
+
+        const htmlText = `<a href="${url}">${title}</a>`;
+        const htmlBlob = new Blob([htmlText], { type: 'text/html' });
+        const plainText = `${title}\n${url}`;
+        const textBlob = new Blob([plainText], { type: 'text/plain', });
+
+        const clipboardItem = new ClipboardItem({
+            [htmlBlob.type]: htmlBlob,
+            [textBlob.type]: textBlob,
+        });
+
+        // TODO: will not work in Safari
+        await navigator.clipboard.write([clipboardItem]);
+        return plainText;
     };
 
     const wrapError = (e) => new Error(extensionName + ": failed to copy page details", { cause: e });
@@ -49,51 +86,13 @@ async function notifyOnCopy(copiedText) {
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
-    // Must be synchronous to remain inside "user gesture"
-    // chrome.permissions.contains({
-    //     permissions: ['notifications'],
-    //     origins: [],
-    // }, (hasNotificationPermission) => {
-    // });
-
     const copyInjectionResults = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: contentScript_copyPageDetailsToClipboard,
     });
+
     if (copyInjectionResults && copyInjectionResults[0] && copyInjectionResults[0].result) {
         const copiedText = copyInjectionResults[0].result;
         await notifyOnCopy(copiedText);
-        // console.log(extensionName + ": result: " + copiedText);
     }
-
-    // const currentUrlInjectionResults = await chrome.scripting.executeScript({
-    //     target: { tabId: tab.id },
-    //     func: contentScript_getWindowLocationUrl,
-    // });
-
-    // if (currentUrlInjectionResults && currentUrlInjectionResults[0] && currentUrlInjectionResults[0].result) {
-    //     const currentUrl = currentUrlInjectionResults[0].result;
-
-    //     const hasNotificationPermission = await chrome.permissions.contains({
-    //         permissions: ['notifications'],
-    //         origins: [currentUrl],
-    //     })
-
-    //     console.log("Notification permissions: " + hasNotificationPermission);
-    //     if (hasNotificationPermission) {
-    //         await notifyOnCopy();
-    //     } else {
-    //         console.log("Requesting notification permissions");
-    //         const gotNotificationPermission = await chrome.permissions.request({
-    //             permissions: ['notifications'],
-    //             origins: [currentUrl],
-    //         });
-
-    //         if (gotNotificationPermission) {
-    //             await notifyOnCopy();
-    //         } else {
-    //             console.log(extensionName + ": notification permissions have been denied");
-    //         }
-    //     }
-    // }
 });
