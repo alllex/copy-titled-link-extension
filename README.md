@@ -2,6 +2,8 @@
 
 This browser extension allows copying the title of the current tab together with the link to it.
 
+![Screenshot](./docs/copy-titled-notify.png)
+
 ## Attribution
 
 - Icon of the extension: <a href="https://www.flaticon.com/free-icons/copy-link" title="copy link icons">Copy link icons created by Freepik - Flaticon</a>.
