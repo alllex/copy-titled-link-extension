@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Copy Titled Link",
   "description": "Copies the title and URL of the current page to the clipboard",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "icons": {
     "128": "images/icon-128.png"
   },
